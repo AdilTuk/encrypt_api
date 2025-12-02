@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ElGamal Encryption Demo</title>
+</head>
+<body>
+    <h1>ElGamal Encryption Demo</h1>
+
+    <button onclick="generateKeys()">Generate Keys</button>
+    <pre id="keys"></pre>
+
+    <h2>Encrypt Message</h2>
+    <textarea id="message" rows="4" cols="50">Hello world!</textarea><br>
+    <button onclick="encryptMessage()">Encrypt</button>
+    <pre id="encrypted"></pre>
+
+    <h2>Decrypt Message</h2>
+    <button onclick="decryptMessage()">Decrypt</button>
+    <pre id="decrypted"></pre>
+
+<script>
+let publicKey = null;
+let privateKey = null;
+let encryptedChunks = null;
+
+async function generateKeys() {
+    const res = await fetch("/generate_keys");
+    const data = await res.json();
+    publicKey = data.public_key;
+    privateKey = data.private_key;
+    document.getElementById("keys").textContent = JSON.stringify(data, null, 2);
+}
+
+async function encryptMessage() {
+    if (!publicKey) return alert("Generate keys first");
+    const message = document.getElementById("message").value;
+    const res = await fetch("/encrypt", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({message, public_key: publicKey})
+    });
+    const data = await res.json();
+    encryptedChunks = data.encrypted_chunks;
+    document.getElementById("encrypted").textContent = JSON.stringify(encryptedChunks, null, 2);
+}
+
+async function decryptMessage() {
+    if (!encryptedChunks) return alert("Encrypt message first");
+    const res = await fetch("/decrypt", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            encrypted_chunks: encryptedChunks,
+            public_key: publicKey,
+            private_key: privateKey
+        })
+    });
+    const data = await res.json();
+    document.getElementById("decrypted").textContent = data.message;
+}
+</script>
+</body>
+</html>
