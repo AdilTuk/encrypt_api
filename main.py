@@ -1,4 +1,7 @@
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 from typing import List
 
 from models import (
@@ -19,16 +22,23 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Статика (фронтенд)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# -------------------------------------
+# Отдаём index.html (главная страница)
+# -------------------------------------
+@app.get("/")
+def root():
+    return FileResponse("static/index.html")
+
 
 # -----------------------------
 # Generate keys
 # -----------------------------
 @app.get("/generate_keys", response_model=dict)
 def api_generate_keys(bits: int = 128):
-    """
-    Генерация ключей ElGamal.
-    bits — длина простого числа p (по умолчанию 128)
-    """
     public_key, private_key = generate_keys(bits)
 
     return {
@@ -46,11 +56,6 @@ def api_generate_keys(bits: int = 128):
 # -----------------------------
 @app.post("/encrypt", response_model=EncryptResponse)
 def api_encrypt(request: EncryptRequest):
-    """
-    Шифрование сообщения.
-    message — строка
-    public_key — объект { p, g, y }
-    """
 
     message_bytes = request.message.encode()
 
@@ -63,7 +68,6 @@ def api_encrypt(request: EncryptRequest):
         }
     )
 
-    # Конвертируем в список EncryptedChunk
     encrypted_chunks = [
         EncryptedChunk(c1=str(c1), c2=str(c2))
         for c1, c2 in encrypted
@@ -72,7 +76,7 @@ def api_encrypt(request: EncryptRequest):
     return EncryptResponse(
         encrypted_chunks=encrypted_chunks,
         public_key=request.public_key,
-        private_key="HIDDEN_ON_ENCRYPT"  # ключ не нужен здесь
+        private_key="HIDDEN"
     )
 
 
@@ -81,12 +85,6 @@ def api_encrypt(request: EncryptRequest):
 # -----------------------------
 @app.post("/decrypt", response_model=DecryptResponse)
 def api_decrypt(request: DecryptRequest):
-    """
-    Расшифровка сообщения.
-    encrypted_chunks — список объектов {c1, c2}
-    public_key — {p, g, y}
-    private_key — число
-    """
 
     encrypted_chunks = [(int(c.c1), int(c.c2)) for c in request.encrypted_chunks]
 

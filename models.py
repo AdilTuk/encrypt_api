@@ -15,6 +15,7 @@ class EncryptedChunk(BaseModel):
 
 class EncryptRequest(BaseModel):
     message: str
+    public_key: PublicKey
 
 
 class EncryptResponse(BaseModel):
